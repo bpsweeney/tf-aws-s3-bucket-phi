@@ -3,11 +3,11 @@ resource "aws_s3_bucket" "s3_bucket" {
   object_lock_enabled = var.object_lock_days > 0
 
   tags = merge(
-    var.tags,
     {
       "data_classification" = "phi"
       "managed_by"          = "terraform"
-    }
+    },
+    var.tags,
   )
 }
 

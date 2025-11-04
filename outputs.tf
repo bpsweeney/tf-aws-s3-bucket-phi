@@ -6,10 +6,18 @@ output "bucket_arn" {
   value       = aws_s3_bucket.s3_bucket.arn
 }
 
+output "bucket_domain_name" {
+  description = <<-EOT
+    Regional domain name of the bucket. This should be passed to the CloudFront
+    origin access config if this bucket will be used as a CloudFront origin.
+    EOT
+  value       = aws_s3_bucket.s3_bucket.bucket_regional_domain_name
+}
+
 output "bucket_name" {
   description = <<-EOT
-    Name (ID) of the bucket. This should be passed to the CloudFront origin
-    access config if this bucket will be used as a CloudFront origin.
+    Name (ID) of the bucket. This can be used when the full ARN is not accepted
+    as an input.
     EOT
   value       = aws_s3_bucket.s3_bucket.id
 }

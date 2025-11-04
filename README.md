@@ -3,6 +3,109 @@
 This module provisions AWS S3 buckets configured to securely store and access
 PHI.
 
+## Usage
+
+This module should be used whenever PHI needs to be stored in S3. It provides
+sane defaults for secure storage and access in line with customer requirements
+for using a HIPAA eligible service in a HIPAA controlled environment. Some of
+the defaults can be overridden for convenience or to add more protections. The
+bucket can also be used as a CloudFront origing with origin access control
+enabled.
+
+### Examples
+
+The following examples assume the module has been installed under a `modules`
+directory at the root of the Terraform project. This first example demonstrates
+a basic configuration relying on all defaults:
+
+```hcl
+module "phi_s3_bucket" {
+  source = "./modules/tf-aws-s3-bucket-phi"
+
+  trusted_read_write_arns = [aws_iam_role.phi_read_only.arn]
+  trusted_read_only_arns  = [aws_iam_role.phi_read_write.arn]
+}
+```
+
+The next example sets the S3 bucket as a CloudFront origin. It assumes that the
+previous configuration was already applied, so the bucket name exists, which
+will prevent a dependency cycle:
+
+```hcl
+resource "aws_cloudfront_origin_access_control" "default" {
+  name                              = "default-oac"
+  origin_access_control_origin_type = "s3"
+  signing_behavior                  = "always"
+  signing_protocol                  = "sigv4"
+}
+
+resource "aws_cloudfront_distribution" "s3_distribution" {
+  origin {
+    domain_name              = module.phi_s3_bucket.bucket_regional_domain_name
+    origin_access_control_id = aws_cloudfront_origin_access_control.default.id
+    origin_id                = local.s3_origin_id
+  }
+
+  enabled             = true
+  default_root_object = "index.html"
+
+  aliases = ["mysite.${local.my_domain}", "yoursite.${local.my_domain}"]
+
+  default_cache_behavior {
+    allowed_methods  = ["DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"]
+    cached_methods   = ["GET", "HEAD"]
+    target_origin_id = local.s3_origin_id
+
+    forwarded_values {
+      query_string = false
+
+      cookies {
+        forward = "none"
+      }
+    }
+
+    viewer_protocol_policy = "redirect-to-https"
+    min_ttl                = 0
+    default_ttl            = 3600
+    max_ttl                = 86400
+  }
+}
+
+module "phi_s3_bucket" {
+  source = "./modules/tf-aws-s3-bucket-phi"
+
+  trusted_read_write_arns     = [aws_iam_role.phi_read_only.arn]
+  trusted_read_only_arns      = [aws_iam_role.phi_read_write.arn]
+
+  cloudfront_distribuiton_arn = aws_cloudfront_distribution.s3_distribution.arn
+}
+```
+
+This last example expands the previous configuration to override all defaults:
+
+```hcl
+module "phi_s3_bucket" {
+  source = "./modules/tf-aws-s3-bucket-phi"
+
+  trusted_read_write_arns         = [aws_iam_role.phi_read_only.arn]
+  trusted_read_only_arns          = [aws_iam_role.phi_read_write.arn]
+
+  bucket_name_prefix              = "a-meaningful-prefix-"
+  cloudfront_distribuiton_arn     = aws_cloudfront_distribution.s3_distribution.arn
+  disable_lifecycle_configuration = true
+  kms_key_arn                     = aws_kms_key.phi_key.arn
+  logging_bucket_id               = aws_s3_bucket.logging.id
+  logging_prefix                  = "logs_go_here/"
+  object_lock_days                = 2555  # seven years
+
+  tags = {
+    "data_classification" = "totally_phi"
+    "environment"         = "production"
+    "owning_team"         = "connected_care"
+  }
+}
+```
+
 <!-- BEGIN_TF_DOCS -->
 ## Requirements
 

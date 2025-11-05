@@ -99,21 +99,6 @@ variable "tags" {
   default     = {}
 }
 
-variable "trusted_read_only_arns" {
-  description = <<-EOT
-    ARNs of principals that should have read-only access to the bucket. These
-    entities will have limited list and read permissions on the bucket and its
-    objects.
-    EOT
-  nullable    = false
-  type        = list(string)
-
-  validation {
-    condition     = length(var.trusted_read_only_arns) > 0
-    error_message = "At least one read-only ARN is required."
-  }
-}
-
 variable "trusted_read_write_arns" {
   description = <<-EOT
     ARNs of principals that should have read/write access to the bucket. These

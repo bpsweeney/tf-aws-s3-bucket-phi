@@ -141,14 +141,6 @@ The following resources are used by this module:
 
 The following input variables are required:
 
-### <a name="input_trusted_read_only_arns"></a> [trusted\_read\_only\_arns](#input\_trusted\_read\_only\_arns)
-
-Description: ARNs of principals that should have read-only access to the bucket. These
-entities will have limited list and read permissions on the bucket and its
-objects.
-
-Type: `list(string)`
-
 ### <a name="input_trusted_read_write_arns"></a> [trusted\_read\_write\_arns](#input\_trusted\_read\_write\_arns)
 
 Description: ARNs of principals that should have read/write access to the bucket. These
@@ -261,10 +253,15 @@ The following outputs are exported:
 Description: Full ARN of the PHI bucket. May be used in IAM permissions policies to grant
 access to additional principals in the same account.
 
+### <a name="output_bucket_domain_name"></a> [bucket\_domain\_name](#output\_bucket\_domain\_name)
+
+Description: Regional domain name of the bucket. This should be passed to the CloudFront
+origin access config if this bucket will be used as a CloudFront origin.
+
 ### <a name="output_bucket_name"></a> [bucket\_name](#output\_bucket\_name)
 
-Description: Name (ID) of the bucket. This should be passed to the CloudFront origin
-access config if this bucket will be used as a CloudFront origin.
+Description: Name (ID) of the bucket. This can be used when the full ARN is not accepted
+as an input.
 
 ### <a name="output_bucket_policy"></a> [bucket\_policy](#output\_bucket\_policy)
 

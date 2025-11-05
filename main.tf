@@ -15,21 +15,6 @@ data "aws_iam_policy_document" "s3_bucket" {
   version = "2012-10-17"
 
   statement {
-    sid     = "ReadGetObject"
-    effect  = "Allow"
-    actions = local.s3_read_only_actions
-    resources = [
-      aws_s3_bucket.s3_bucket.arn,
-      "${aws_s3_bucket.s3_bucket.arn}/*",
-    ]
-
-    principals {
-      identifiers = var.trusted_read_only_arns
-      type        = "AWS"
-    }
-  }
-
-  statement {
     sid    = "WritePutObject"
     effect = "Allow"
     actions = concat(

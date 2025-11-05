@@ -27,7 +27,24 @@ data "aws_iam_policy_document" "s3_bucket" {
     )
     resources = [
       aws_s3_bucket.s3_bucket.arn,
-      "${aws_s3_bucket.s3_bucket.arn}/*",
+      "${aws_s3_bucket.s3_bucket.arn}/$${aws:PrincipalTag/provider}/*",
+    ]
+
+    principals {
+      identifiers = var.trusted_read_write_arns
+      type        = "AWS"
+    }
+  }
+
+  statement {
+    sid    = "DenyOtherPrefixes"
+    effect = "Deny"
+    actions = [
+      "s3:GetObj*",
+      "s3:PutObj*",
+    ]
+    not_resources = [
+      "${aws_s3_bucket.s3_bucket.arn}/$${aws:PrincipalTag/provider}/*",
     ]
 
     principals {

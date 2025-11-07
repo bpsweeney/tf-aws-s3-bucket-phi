@@ -106,6 +106,81 @@ module "phi_s3_bucket" {
 }
 ```
 
+The following architecture digram illustrates how this module (PHI Bucket) could
+be integrated into a health record collaboration system (please note that edges
+without arrows on either end are used to improve alignment, not to indicate a
+relationship):
+
+```mermaid
+---
+config:
+  theme: 'dark'
+---
+architecture-beta
+
+  group cloud(aws:aws-cloud)
+  group account(aws:aws-account) in cloud
+  group region(aws:region) in account
+  group vpc(aws:virtual-private-cloud-vpc) in region
+  group priv(aws:private-subnet)[Private Subnet] in vpc
+
+  service clients(aws:res-users)[Employer Clients]
+  service ops(aws:res-users)[SecOps]
+  service providers(aws:res-users)[Provider Partners]
+  service cdn(aws:arch-amazon-cloudfront)[CDN] in account
+  service dns(aws:arch-amazon-route-53)[Alias Record] in account
+  service waf(aws:arch-aws-waf)[WAF] in account
+  service iam(aws:res-aws-identity-access-management-role)[Provider Role] in account
+  service events(aws:arch-amazon-eventbridge)[EventBridge Rules] in region
+  service guard(aws:arch-amazon-guardduty)[GuardDuty] in region
+  service clientsns(aws:arch-amazon-simple-notification-service)[Reports Topic] in region
+  service opssns(aws:arch-amazon-simple-notification-service)[Alerts Topic] in region
+  service acm(aws:arch-aws-certificate-manager)[SNI Certificate] in region
+  service trail(aws:arch-aws-cloudtrail)[S3 Data Events] in region
+  service kms(aws:arch-aws-key-management-service)[CMK] in region
+  service secrets(aws:arch-aws-secrets-manager)[Signing Key] in region
+  service log(aws:res-amazon-simple-storage-service-general-purpose-bucket)[Logging Bucket] in region
+  service phi(aws:res-amazon-simple-storage-service-general-purpose-bucket)[PHI Bucket] in region
+  service rot(aws:res-aws-lambda-lambda-function)[Secret Rotation] in region
+  service secretsvpc(aws:res-amazon-vpc-endpoints)[Secrets Manager] in priv
+  service snsvpc(aws:res-amazon-vpc-endpoints)[SNS] in priv
+  service sign(aws:res-aws-lambda-lambda-function)[URL Signer] in priv
+
+  junction clients1 in account
+  junction clients2
+  junction clients3
+  junction cdn1 in region
+  junction ops1 in account
+
+  providers:R --> L:iam
+  iam:R --> L:phi
+  dns:B <--> T:clients
+  waf:B <--> T:dns
+  cdn:B <--> T:waf
+  cdn:R <-- L:cdn1
+  phi:B <-- T:cdn1
+  cdn1:B <-- T:acm
+  log:B <-- T:phi
+  phi:R --> L:sign
+  secretsvpc:R <-- L:secrets
+  secretsvpc:B --> T:sign
+  sign:B --> T:snsvpc
+  snsvpc:B --> T:clientsns
+  secrets:R <-- L:rot
+  secrets:B <-- T:kms
+  guard:R --> L:events
+  trail:B --> T:events
+  events:B --> T:opssns
+  opssns:B -- T:ops1
+  ops1:B --> T:ops
+  clientsns:B -- T:clients1
+  clients1:B -- T:clients2
+  clients3:R -- L:clients2
+  clients:R <-- L:clients3
+  kms:R -- L:trail
+  iam:B -- T:cdn
+```
+
 <!-- BEGIN_TF_DOCS -->
 ## Requirements
 
